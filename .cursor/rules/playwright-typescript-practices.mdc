@@ -8,7 +8,7 @@ alwaysApply: true
 
 - Always use the newest compatible stable versions of libraries. Prefer caret (^) ranges, review changelogs before upgrading, and keep devDependencies like `@playwright/test` and `typescript` up to date.
 - Use the official test runner `@playwright/test` and prefer built-in fixtures over global setup.
-- Prefer `locator` and accessibility-first selectors (`getByRole`, `getByLabel`) or stable `data-testid` attributes for resilience.
+- Focus on simple, unique, stable locators. Prefer `id`, `name` or `data-testid` attributes for resilience. Don't guess locators, always use MCP to verify best ones.
 - Avoid arbitrary sleeps (`page.waitForTimeout`). Use `expect(locator).toBe*`, `locator.waitFor()`, or `waitForResponse` to await conditions.
 - Keep tests small, isolated, and deterministic. Seed or fixture test data; avoid random state.
 - Use fixtures / `test.use()` for auth, baseURL, storageState, and shared resources.

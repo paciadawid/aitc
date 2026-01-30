@@ -18,7 +18,7 @@ export default defineConfig({
     headless: true,
     actionTimeout: 10_000,
     trace: 'on-first-retry',
-    baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
+    baseURL: 'https://bearstore-testsite.smartbear.com',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     // storageState: 'tests/state/auth.json', // enable if using auth fixtures
