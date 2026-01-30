@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test('test', async ({ page }) => {
-  await page.goto('https://bearstore-testsite.smartbear.com/');
+test('1 + 1 equals 2', async () => {
 
-  expect(page.getByRole('button', {name: "adsad"})).toBeVisible
+  expect(1 + 1).toBe(2);
 
 });

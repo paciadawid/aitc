@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 export default defineConfig({
   testDir: 'tests',
@@ -17,10 +20,11 @@ export default defineConfig({
   use: {
     headless: true,
     actionTimeout: 10_000,
-    trace: 'on-first-retry',
-    baseURL: 'https://bearstore-testsite.smartbear.com',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    trace: 'on',
+    baseURL: process.env.BASE_URL,
+    screenshot: 'on',
+    video: 'on',
+    
     // storageState: 'tests/state/auth.json', // enable if using auth fixtures
   },
 
@@ -28,8 +32,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
 
   /* Reporters and output */
-  reporter: [['list'], ['html', { open: 'never' }]],
-  outputDir: 'playwright-report',
+  reporter: [['list'], ['html', { open: 'always' }]],
 
   projects: [
     {

@@ -6,29 +6,68 @@ alwaysApply: true
 
 # Playwright (TypeScript) Best Practices
 
-- Always use the newest compatible stable versions of libraries. Prefer caret (^) ranges, review changelogs before upgrading, and keep devDependencies like `@playwright/test` and `typescript` up to date.
-- Use the official test runner `@playwright/test` and prefer built-in fixtures over global setup.
-- Focus on simple, unique, stable locators. Prefer `id`, `name` or `data-testid` attributes for resilience. Don't guess locators, always use MCP to verify best ones.
-- Avoid arbitrary sleeps (`page.waitForTimeout`). Use `expect(locator).toBe*`, `locator.waitFor()`, or `waitForResponse` to await conditions.
-- Keep tests small, isolated, and deterministic. Seed or fixture test data; avoid random state.
-- Use fixtures / `test.use()` for auth, baseURL, storageState, and shared resources.
-- Mock network calls with `page.route()` or the request API for edge-case flows and to speed tests.
-- Configure sensible timeouts and artifact capture (trace/screenshot/video) in `playwright.config.ts`; set retries and CI policies separately as needed.
-- Use the Page Object Model for complex UI flows; keep assertions in the test, not inside page objects.
-- Prefer explicit assertions (one expectation per behavior) and avoid over-asserting UI internals.
-- Enable TypeScript strictness and add typed fixtures for better DX and discoverability.
-- Add linting (ESLint) with `eslint-plugin-playwright` and enforce formatting (Prettier / code formatter).
+- Always use MCP to discover page structure and verify locators before writing tests.
+- Prefer stable locators (in order): `id`, `name`, `data-testid`, then accessible roles/labels. Avoid guessing selectors.
+- Do not perform extra actions in tests beyond what's required for the assertion. Keep each test focused on a single behavior.
+- Avoid arbitrary timeouts (`page.waitForTimeout`). Prefer:
+  - `await expect(locator).toBeVisible()` (built-in retries),
+  - `await locator.waitFor({ state: 'visible' })`,
+  - `await page.waitForResponse(...)` or `await page.waitForURL(...)` when verifying navigation.
+- Do not use deprecated APIs such as `page.waitForNavigation(...)`. Use `page.waitForURL(...)`, `locator.waitFor(...)`, `waitForResponse`, or pair the click with an explicit wait:
+
+```ts
+await Promise.all([
+  page.getByRole('button', { name: 'Log in' }).click(),
+  page.waitForURL('/'),
+]);
+```
+
+or
+
+```ts
+await page.getByRole('button', { name: 'Log in' }).click();
+await page.getByRole('link', { name: 'My account' }).waitFor({ state: 'visible' });
+```
+
+- When asserting a post-action state, prefer asserting a single stable element (e.g., `My account` link or a unique account display name) rather than multiple checks.
+- Keep tests minimal and deterministic: fill only required fields, click the submit control, and assert a single post-condition.
+- Use MCP Playwright tools (e.g., `browser_snapshot`, `browser_run_code`) to capture the DOM and confirm ids/labels before coding tests.
+- If a flow requires authentication for many tests, capture `storageState` once in a fixture and reuse it via `test.use({ storageState: 'tests/state/auth.json' })`.
+- Prefer explicit, descriptive test names (e.g., `test('login', ...)` or `test('user can log in')`) and keep one expectation per logical behavior.
+
+- Environment & secrets
+- Use `dotenv` (devDependency) to manage environment-specific values (credentials, base URL, feature flags). Add a `.env.example` with placeholder values and add `.env` to `.gitignore`. Never commit real credentials.
+- Do not hardcode sensitive values in tests or rules. Tests should read values from `process.env` and fail fast if required variables are missing:
+
+```ts
+// tests/login.spec.ts
+import dotenv from 'dotenv';
+dotenv.config();
+const EMAIL = process.env.TEST_EMAIL;
+if (!EMAIL) throw new Error('Missing TEST_EMAIL');
+```
+
+- Extract `baseURL` to env and load it in `playwright.config.ts` (use `process.env.BASE_URL ?? '<default>'`), so tests don't depend on a single hardcoded host.
+
+- Visible / unique element selection
+- When a selector can match multiple elements (including hidden duplicates), prefer targeting visible instances or narrow using `hasText` + `.first()`:
+
+```ts
+await expect(page.locator('a[href="/customer/info"]:visible').first()).toBeVisible();
+```
+
 
 ## Examples
 
 ```typescript
 import { test, expect } from '@playwright/test';
 
-test('login flow', async ({ page }) => {
+test('login', async ({ page }) => {
   await page.goto('/login');
-  await page.getByLabel('Email').fill('user@example.com');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByText('Welcome')).toBeVisible();
+  await page.fill('#UsernameOrEmail', 'tester+testowy@gmail.com');
+  await page.fill('#Password', 'test123');
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await expect(page.getByRole('link', { name: 'My account' })).toBeVisible();
 });
 ```
 
