@@ -1,0 +1,46 @@
+---
+description: "Playwright + TypeScript best practices"
+globs: "**/*.{spec,test,e2e}.ts"
+alwaysApply: true
+---
+
+# Playwright (TypeScript) Best Practices
+
+- Always use the newest compatible stable versions of libraries. Prefer caret (^) ranges, review changelogs before upgrading, and keep devDependencies like `@playwright/test` and `typescript` up to date.
+- Use the official test runner `@playwright/test` and prefer built-in fixtures over global setup.
+- Prefer `locator` and accessibility-first selectors (`getByRole`, `getByLabel`) or stable `data-testid` attributes for resilience.
+- Avoid arbitrary sleeps (`page.waitForTimeout`). Use `expect(locator).toBe*`, `locator.waitFor()`, or `waitForResponse` to await conditions.
+- Keep tests small, isolated, and deterministic. Seed or fixture test data; avoid random state.
+- Use fixtures / `test.use()` for auth, baseURL, storageState, and shared resources.
+- Mock network calls with `page.route()` or the request API for edge-case flows and to speed tests.
+- Configure sensible timeouts and artifact capture (trace/screenshot/video) in `playwright.config.ts`; set retries and CI policies separately as needed.
+- Use the Page Object Model for complex UI flows; keep assertions in the test, not inside page objects.
+- Prefer explicit assertions (one expectation per behavior) and avoid over-asserting UI internals.
+- Enable TypeScript strictness and add typed fixtures for better DX and discoverability.
+- Add linting (ESLint) with `eslint-plugin-playwright` and enforce formatting (Prettier / code formatter).
+
+## Examples
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('login flow', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('user@example.com');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByText('Welcome')).toBeVisible();
+});
+```
+
+```typescript
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  testDir: 'tests',
+  timeout: 30_000,
+  // Adjust retries as needed for flaky infra; keep tests themselves deterministic.
+  retries: 0,
+  use: { headless: true, trace: 'on-first-retry', actionTimeout: 10_000 },
+});
+```
+
