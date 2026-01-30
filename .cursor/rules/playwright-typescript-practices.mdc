@@ -56,6 +56,86 @@ if (!EMAIL) throw new Error('Missing TEST_EMAIL');
 await expect(page.locator('a[href="/customer/info"]:visible').first()).toBeVisible();
 ```
 
+## Page Object Model (POM)
+
+- Organize page objects under `tests/pages/` and name classes after pages (e.g., `LoginPage`, `HomePage`).
+- Page objects should encapsulate behavior and waits. Tests should call high-level actions (e.g., `loginPage.login(email, pwd)`) and perform assertions — do not duplicate low-level waits in tests.
+- Encapsulate waits inside page-object methods. Example:
+
+```ts
+// tests/pages/LoginPage.ts
+async login(email: string, pwd: string) {
+  await this.username.fill(email);
+  await this.password.fill(pwd);
+  await Promise.all([this.loginButton.click(), this.page.waitForURL('/')]);
+  // internal visibility wait ensures the method only returns when logged in
+  await this.myAccountLink.waitFor({ state: 'visible' });
+}
+```
+
+- Do NOT expose separate public `waitForX()` helpers for common flows that are already awaited inside action methods. If a wait helper is necessary for reuse, make it private (prefix with `_`) or keep it internal.
+- Keep page objects minimal: provide only the actions tests need and helpers that return values (e.g., `getResultsCount()`).
+- Page objects should avoid assertions; let tests assert outcomes.
+
+## Fixtures & test setup
+
+- Provide page objects and common test utilities via Playwright fixtures. Place fixture definitions in `tests/fixtures.ts` and export `{ test, expect }` from there so tests can import your extended `test`.
+- Fixture responsibilities:
+  - Create and expose page-object instances (e.g., `loginPage`, `homePage`).
+  - Configure and reuse `storageState` for authenticated flows when needed.
+  - Provide shared helpers (e.g., `apiClient`, `dbReset`) if required by many tests.
+- Example `tests/fixtures.ts`:
+
+```ts
+import { test as base, expect } from '@playwright/test';
+import { LoginPage } from './pages/LoginPage';
+import { HomePage } from './pages/HomePage';
+
+type Pages = { loginPage: LoginPage; homePage: HomePage };
+
+export const test = base.extend<Pages>({
+  loginPage: async ({ page }, use) => { await use(new LoginPage(page)); },
+  homePage: async ({ page }, use) => { await use(new HomePage(page)); },
+});
+export { expect };
+```
+
+- Example test usage:
+
+```ts
+import { test, expect } from './fixtures';
+
+test('login', async ({ loginPage }) => {
+  await loginPage.goto();
+  await loginPage.login(process.env.TEST_EMAIL!, process.env.TEST_PASSWORD!);
+  await expect(loginPage.myAccountLink).toBeVisible();
+});
+```
+
+- Keep fixtures minimal and focused; avoid putting test assertions inside fixtures. Fixtures should prepare state, not validate it.
+
+## Artifacts, Tracing & Video
+
+- Configure recording in `playwright.config.ts` thoughtfully:
+  - For daily development: `trace: 'on'`, `video: 'on'` will always record but increase disk usage.
+  - For CI: prefer `trace: 'on-first-retry'` and `video: 'retain-on-failure'`.
+- Use CLI `--trace=on` to force trace for a single run. There is no CLI `--video` flag; enable video via config or programmatically.
+- To programmatically capture trace around a block:
+
+```ts
+await page.context().tracing.start({ screenshots: true, snapshots: true });
+// actions...
+await page.context().tracing.stop({ path: 'trace.zip' });
+```
+
+- Artifacts are stored under `outputDir` (e.g., `playwright-report`). Use `npx playwright show-report` to view them in the browser.
+
+## Environment & Secrets (reiterated)
+
+- Use `dotenv` to load env values in tests and config. Provide `.env.example` with placeholders and add `.env` to `.gitignore`.
+- Tests should fail fast when required env vars are missing (throw during test file load).
+
+
 
 ## Examples
 

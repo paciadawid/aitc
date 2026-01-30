@@ -32,7 +32,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
 
   /* Reporters and output */
-  reporter: [['list'], ['html', { open: 'always' }]],
+  reporter: [['list'], ['html', { open: 'never' }]],
 
   projects: [
     {

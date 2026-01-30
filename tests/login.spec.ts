@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import dotenv from 'dotenv';
+import { test, expect } from '../src/lib/fixtures';
 
 dotenv.config();
 
@@ -12,14 +12,8 @@ if (!EMAIL || !PASSWORD) {
   );
 }
 
-test('login', async ({ page }) => {
-  await page.goto('/login');
-  await page.fill('#UsernameOrEmail', EMAIL);
-  await page.fill('#Password', PASSWORD);
-  await Promise.all([
-    page.getByRole('button', { name: 'Log in' }).click(),
-    page.waitForURL('/'),
-  ]);
-  await expect(page.locator('a[href=\"/customer/info\"]:visible').first()).toBeVisible();
+test('login', async ({ loginPage }) => {
+  await loginPage.goto();
+  await loginPage.login(EMAIL, PASSWORD);
+  await expect(loginPage.myAccountLink).toBeVisible();
 });
-

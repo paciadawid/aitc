@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
+      "@faker-js/faker": "^10.0.0",
     "typescript": "^5.9.3",
     "@types/node": "^25.0.10",
     "eslint": "^9.39.2",
